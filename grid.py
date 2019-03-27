@@ -1,7 +1,10 @@
 from pygame_functions import *
 from backend import *
 from copy import *
+import sys
 
+sys.setrecursionlimit(10000)
+args = sys.argv
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 GREEN = (0, 255, 0)
@@ -9,7 +12,7 @@ RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 
 class Grid:
-    def __init__(self, gridType, xpos, ypos, gridSize):
+    def __init__(self, gridType, xpos, ypos, i, j, gridSize):
         self.gridType = gridType #1 for obstacle, 0 for no obstacle
         if (self.gridType == '0'):
             self.color = WHITE
@@ -18,8 +21,11 @@ class Grid:
         self.location = (xpos,ypos)
         self.gridSize = gridSize
         self.cost = 0
+        self.g = 0
         self.predecessor = None
         self.adjacency = None
+        self.i = i
+        self.j = j
 
     def draw(self,screen):
         pygame.draw.rect(screen, self.color, [self.location[0], self.location[1], self.gridSize, self.gridSize])
@@ -44,7 +50,7 @@ class Maze:
             j = 0
             line = []
             for element in row:
-                newGrid = Grid(element, gridSize*j + 30, gridSize*i + 70, gridSize)
+                newGrid = Grid(element, gridSize*j + 30, gridSize*i + 70, i, j, gridSize)
                 line.append(newGrid)
                 j += 1
             self.matrix.append(line)
@@ -114,14 +120,15 @@ class Maze:
                 if (grid == element):
                     return element.adjacency
 
-screen = screenSize(800,600)
-pygame.display.set_caption("Grid Test")
-setBackgroundColour('white')
-
 # Make matrix of maze
-mazefile = open("mazeLarge.txt", "r")
-inputMatrix = []
+if (len(args) == 2):
+    mazefile = open(args[1], "r")
+else:
+    print('Enter maze file :')
+    mazefile = input()
+    mazefile = open(mazefile, "r")
 
+inputMatrix = []
 for line in mazefile:
     row = []
     for char in line:
@@ -129,6 +136,10 @@ for line in mazefile:
             row.append(char)
     inputMatrix.append(row)
 mazefile.close()
+
+screen = screenSize(800,600)
+pygame.display.set_caption("Grid Test")
+setBackgroundColour('white')
 
 maze = Maze(500,500,inputMatrix)
 bfsButton = makeSprite("image/button_bfs.png")
@@ -139,11 +150,15 @@ moveSprite(aStarButton, 600,400)
 showSprite(aStarButton)
 mapSize = makeLabel(str(len(inputMatrix))+ " x "+ str(len(inputMatrix)), 50,600,200)
 showLabel(mapSize)
-selectStart = makeLabel("Select START location",50,10,0)
-selectFinish = makeLabel("Select FINISH location",50,10,0)
-selectAlgo = makeLabel("Select ALGORITHM",50,10,0)
+selectStart = makeLabel("Select START location",50,30,0)
+selectFinish = makeLabel("Select FINISH location",50,30,0)
+selectAlgo = makeLabel("Select ALGORITHM",50,30,0)
 showLabel(selectStart)
+logo = makeSprite("image/logo2.png")
+moveSprite(logo, 550, 50)
+showSprite(logo)
 startMaze = None
+jarakLabel = None
 
 run = True
 start = True
@@ -165,7 +180,7 @@ while run:
                     start = False
                     hideLabel(selectFinish)
                     showLabel(selectAlgo)
-                    startMaze = deepcopy(maze)
+                    startMaze = copy(maze)
             else:
                 if (maze.setStartLocation(mouseX(), mouseY())):
                     finish = True
@@ -176,14 +191,20 @@ while run:
     #ASKING ALGORITHM
     if (maze.startLocation != None and maze.finishLocation != None):
         if (spriteClicked(bfsButton)):
+            hideLabel(jarakLabel)
             maze = deepcopy(startMaze)
             pause(100)
-            BFS(maze, screen)
+            jarak = BFS(maze, screen)
+            jarakLabel = makeLabel("Jarak : " + str(jarak), 50, 600, 500)
+            showLabel(jarakLabel)
         
         if (spriteClicked(aStarButton)):
+            hideLabel(jarakLabel)
             maze = deepcopy(startMaze)
             pause(100)
-            #aStar
+            jarak = AStar(maze, screen)
+            jarakLabel = makeLabel("Jarak : " + str(jarak), 50, 600, 500)
+            showLabel(jarakLabel)
 
     #UPDATE SURFACE
     updateDisplay()
